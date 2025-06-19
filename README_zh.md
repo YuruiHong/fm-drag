@@ -15,13 +15,7 @@
 ## 安装
 
 ```bash
-# 下载脚本并赋予执行权限
-sudo curl -sSL https://github.com/YuruiHong/fm-drag/raw/main/fm-drag.sh \
-          -o /usr/local/bin/fm-drag && sudo chmod +x /usr/local/bin/fm-drag
-
-# 根据系统默认文件管理器自动创建唯一软链
-fm=$(xdg-mime query default inode/directory | sed 's/\.desktop$//')
-sudo ln -sf /usr/local/bin/fm-drag /usr/local/bin/"$fm"
+curl -sSL https://github.com/<YOUR-USER>/fm-drag/raw/main/install.sh | sudo bash
 ````
 
 安装完成后，你可以直接使用原命令（如 `caja`、`nautilus`、`dolphin` 等）来打开目录或文件。

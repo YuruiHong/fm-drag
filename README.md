@@ -13,13 +13,7 @@ A small wrapper for your default file manager (Caja, Nautilus, Dolphin, Thunar, 
 ## Installation
 
 ```bash
-# Download script and make it executable
-sudo curl -sSL https://github.com/YuruiHong/fm-drag/raw/main/fm-drag.sh \
-          -o /usr/local/bin/fm-drag && sudo chmod +x /usr/local/bin/fm-drag
-
-# Create a single symlink under your default FM name
-fm=$(xdg-mime query default inode/directory | sed 's/\.desktop$//')
-sudo ln -sf /usr/local/bin/fm-drag /usr/local/bin/"$fm"
+curl -sSL https://github.com/<YOUR-USER>/fm-drag/raw/main/install.sh | sudo bash
 ````
 
 You can now call e.g. `caja`, `nautilus`, `dolphin`, … with both folders and files as arguments.

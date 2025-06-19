@@ -1,26 +1,50 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Determine which FM we're wrapping
-fm_cmd="$(basename "$0")"
-ORIG_FM="$(command -v "${fm_cmd}.real" 2>/dev/null || command -v "$fm_cmd" 2>/dev/null || true)"
-if [[ -z "$ORIG_FM" || "$ORIG_FM" == "$0" ]]; then
-  ORIG_FM="/usr/bin/$fm_cmd"
-fi
+# -----------------------------------------------------------------------------
+# fm-drag.sh: wrapper for your default file manager that
+# 1) Opens real directories normally;
+# 2) For file arguments, creates a temp dir with symlinks, opens it,
+#    waits for that window to close, then cleans up.
+# It auto-detects your FM's real Exec command (and default flags) from its
+# .desktop file, so flags like --no-desktop are preserved.
+# -----------------------------------------------------------------------------
 
-# Base for temporary dirs
+# 1. Locate the system default file manager's .desktop file
+desktop_file=$(xdg-mime query default inode/directory)
+
+# 2. Search for that .desktop in standard locations
+desktop_path=""
+for d in \
+    "${XDG_DATA_HOME:-$HOME/.local/share}/applications" \
+    /usr/local/share/applications \
+    /usr/share/applications; do
+  if [[ -f "$d/$desktop_file" ]]; then
+    desktop_path="$d/$desktop_file"
+    break
+  fi
+done
+# fallback
+desktop_path="${desktop_path:-/usr/share/applications/$desktop_file}"
+
+# 3. Parse its Exec= line, strip out %U/%u/%F/%f, split into command + default flags
+exec_line=$(grep -E '^Exec=' "$desktop_path" | head -n1 | sed 's/^Exec=//')
+exec_clean=$(echo "$exec_line" | sed -E 's/ *%[uUFf]//g')
+ORIG_FM=$(echo "$exec_clean" | awk '{print $1}')
+read -r -a default_flags <<< "$(echo "$exec_clean" | cut -d' ' -f2-)"
+
+# 4. Prepare base temp dir
 BASE_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/tmp}"
 
-# --- 显式初始化数组，避免 unbound variable 错误 ---
+# 5. Initialize arrays
 fm_flags=()
 dirs=()
 files=()
 
-# Parse arguments: flags (-*) vs paths; "--" as end-of-flags marker
+# 6. Parse args: collect flags (leading -), stop at "--", then paths
 end_of_flags=0
 for arg in "$@"; do
   if (( end_of_flags )); then
-    # 已遇 "--"，只当作路径处理
     if [[ -d "$arg" ]]; then
       dirs+=("$arg")
     elif [[ -e "$arg" ]]; then
@@ -29,49 +53,50 @@ for arg in "$@"; do
       echo "Warning: '$arg' not found, skipping." >&2
     fi
   else
-    if [[ "$arg" == "--" ]]; then
-      end_of_flags=1
-    elif [[ "$arg" == -* ]]; then
-      fm_flags+=("$arg")
-    else
-      if [[ -d "$arg" ]]; then
-        dirs+=("$arg")
-      elif [[ -e "$arg" ]]; then
-        files+=("$arg")
-      else
-        echo "Warning: '$arg' not found, skipping." >&2
-      fi
-    fi
+    case "$arg" in
+      --) end_of_flags=1 ;;
+      -*) fm_flags+=("$arg") ;;
+      *)
+        if [[ -d "$arg" ]]; then
+          dirs+=("$arg")
+        elif [[ -e "$arg" ]]; then
+          files+=("$arg")
+        else
+          echo "Warning: '$arg' not found, skipping." >&2
+        fi
+      ;;
+    esac
   fi
 done
 
-# If no paths at all → fallback to default behavior (open home or as --browser)
+# 7. If no paths given, just invoke FM (opens home or as per flags)
 if (( ${#dirs[@]} == 0 && ${#files[@]} == 0 )); then
-  exec "$ORIG_FM" "${fm_flags[@]}"
+  exec "$ORIG_FM" "${default_flags[@]}" "${fm_flags[@]}"
 fi
 
-# Open directories (non-blocking)
+# 8. Open each directory normally (in background)
 for d in "${dirs[@]}"; do
-  "$ORIG_FM" "${fm_flags[@]}" "$d" &
+  "$ORIG_FM" "${default_flags[@]}" "${fm_flags[@]}" "$d" &
 done
 
-# Handle files via temp folder + symlinks
+# 9. If files provided, build temp dir + symlinks, open, wait, cleanup
 if (( ${#files[@]} > 0 )); then
   tmpdir=$(mktemp -d "${BASE_RUNTIME_DIR}/drag-dir.XXXXXX")
   for f in "${files[@]}"; do
     ln -s "$(readlink -f "$f")" "$tmpdir/$(basename "$f")"
   done
 
-  # Launch FM on tempdir
-  "$ORIG_FM" "${fm_flags[@]}" "$tmpdir" &
+  # Open tempdir
+  "$ORIG_FM" "${default_flags[@]}" "${fm_flags[@]}" "$tmpdir" &
 
-  # Wait for window with title exactly matching basename(tmpdir)
+  # Wait for the FM window titled exactly by tmpdir basename
   base=$(basename "$tmpdir")
   wid=""
   until wid=$(xdotool search --name "^${base}$" 2>/dev/null | head -n1) && [[ -n "$wid" ]]; do
     sleep 0.5
   done
-  # Then wait until that window closes
+
+  # Then wait until it closes
   while xdotool search --name "^${base}$" >/dev/null 2>&1; do
     sleep 0.5
   done
