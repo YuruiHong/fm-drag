@@ -15,7 +15,7 @@
 ## 安装
 
 ```bash
-curl -sSL https://github.com/<YOUR-USER>/fm-drag/raw/main/install.sh | sudo bash
+curl -sSL https://github.com/YuruiHong/fm-drag/raw/main/install.sh | sudo bash
 ````
 
 安装完成后，你可以直接使用原命令（如 `caja`、`nautilus`、`dolphin` 等）来打开目录或文件。

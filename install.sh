@@ -3,7 +3,7 @@ set -euo pipefail
 
 DEST_BIN=/usr/local/bin
 SCRIPT_NAME=fm-drag
-SCRIPT_URL="https://github.com/<YOUR-USER>/fm-drag/raw/main/fm-drag.sh"
+SCRIPT_URL="https://github.com/YuruiHong/fm-drag/raw/main/fm-drag.sh"
 
 echo "Installing $SCRIPT_NAME to $DEST_BIN/$SCRIPT_NAME…"
 curl -sSL "$SCRIPT_URL" -o "$DEST_BIN/$SCRIPT_NAME"

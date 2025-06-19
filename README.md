@@ -13,7 +13,7 @@ A small wrapper for your default file manager (Caja, Nautilus, Dolphin, Thunar, 
 ## Installation
 
 ```bash
-curl -sSL https://github.com/<YOUR-USER>/fm-drag/raw/main/install.sh | sudo bash
+curl -sSL https://github.com/YuruiHong/fm-drag/raw/main/install.sh | sudo bash
 ````
 
 You can now call e.g. `caja`, `nautilus`, `dolphin`, … with both folders and files as arguments.
