@@ -35,7 +35,7 @@ fi
 if [[ -n "$fm_exec" ]]; then
   echo "Creating symlink: $DEST_BIN/$fm_exec → $SCRIPT_NAME"
   ln -sf "$DEST_BIN/$SCRIPT_NAME" "$DEST_BIN/$fm_exec"
-  echo "Done! Now you can run '$fm_exec [flags] [paths]' as usual."
+  echo "Done! Now you can restart shell and run '$fm_exec [flags] [paths]' as usual."
 else
   cat << 'EOF'
 Could not auto-detect your file manager. 
